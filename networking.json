@@ -1,0 +1,212 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VPCCIDRBLOCK"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "VPCNAME"
+            }
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "IGWNAME"
+            }
+          }
+        ]
+      }
+    },
+    "VPCGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PrivateRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "PRIVATEROUTETABLENAME"
+            }
+          }
+        ]
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "PUBLICROUTETABLENAME"
+            }
+          }
+        ]
+      }
+    },
+    "PublicInternetRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "InternetGateway",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "Subnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AWSREGION1"
+        },
+        "CidrBlock": {
+          "Ref": "Subnet1CIDRBLOCK"
+        },
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "Subnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AWSREGION2"
+        },
+        "CidrBlock": {
+          "Ref": "Subnet2CIDRBLOCK"
+        },
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "Subnet3": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone":  {
+          "Ref": "AWSREGION3"
+        },
+        "CidrBlock": {
+          "Ref": "Subnet3CIDRBLOCK"
+        },
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    
+    "SubnetRouteTable1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Subnet1"
+        }
+      }
+    },
+    "SubnetRouteTable2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Subnet2"
+        }
+      }
+    },
+    "SubnetRouteTable3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "Subnet3"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "VPCNAME": {
+      "Description": "The stack name",
+      "Default": "test2",
+      "Type": "String"
+    },
+    "IGWNAME": {
+      "Description": "The Internet Gateway name",
+      "Default": "test",
+      "Type": "String"
+    },
+    "PRIVATEROUTETABLENAME": {
+      "Description": "The Private Route Table name",
+      "Default": "test",
+      "Type": "String"
+    },
+    "PUBLICROUTETABLENAME": {
+      "Description": "The Public Route Table name",
+      "Default": "test",
+      "Type": "String"
+    },
+    "VPCCIDRBLOCK": {
+      "Description": "CIDRBlock id",
+      "Default": "10.192.0.0/16",
+      "Type": "String"
+    },
+    "Subnet1CIDRBLOCK":{
+      "Description": "CIDRBlock id",
+      "Default": "10.192.10.0/24",
+      "Type": "String"
+    },
+    "Subnet2CIDRBLOCK":{
+      "Description": "CIDRBlock id",
+      "Default": "10.192.11.0/24",
+      "Type": "String"
+    },
+    "Subnet3CIDRBLOCK":{
+      "Description": "CIDRBlock id",
+      "Default": "10.192.20.0/24",
+      "Type": "String"
+    }
+
+  }
+}
