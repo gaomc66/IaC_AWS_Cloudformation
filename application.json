@@ -306,32 +306,39 @@
                 "PolicyName": "CodeDeployEC2S3",
                 "PolicyDocument": {
                     "Version" : "2012-10-17",
-                    "Statement": [ {
-                        "Sid": "VisualEditor0",
-                        "Effect": "Allow",
-                        "Action": [
-                            "s3:Get*",
-                            "s3:List*"
-                        ],
-                        "Resource": {
-                            "Fn::GetAtt": [
-                                "S3Bucket",
-                                "Arn"
-                              ]
+                    "Statement": [ 
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject",
+                                "s3:DeleteObject",
+                                "s3:PutObject",
+                                "s3:ListBucket"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "S3Bucket",
+                                        "Arn"
+                                    ]
+                                },
+                                {
+                                    "Fn::Join":[
+                                        "",
+                                        [
+                                            {
+                                            "Fn::GetAtt": [
+                                                "S3Bucket",
+                                                "Arn"
+                                            ]
+                                            },"/*"
+                                        ]
+                                    ]   
+                                }
+                            ]
+                                
                         }
-                    },
-                    {
-                        "Sid": "VisualEditor1",
-                        "Effect": "Allow",
-                        "Action": "s3:PutObject",
-                        "Resource": {
-                            "Fn::GetAtt": [
-                                "S3Bucket",
-                                "Arn"
-                              ]
-                        }
-                    }
-                ]
+                    ]
                 },
                 "Roles": [  {"Ref":"EC2IAMROLE"}]
             }
