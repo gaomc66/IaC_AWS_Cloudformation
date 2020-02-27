@@ -186,70 +186,44 @@
                 "UserData" : {
                     "Fn::Base64": {
                       "Fn::Join": [
-                        "\n",
+                        "",
                         [
                             "#!/bin/bash -xe ",
                             "set -e -x \n",
                             "sudo apt-get update \n",
-                            "echo export PROFILE_NAME=AWS >> env/properties \n",
-                            "echo export 'RDS_MYSQL_DB_HOST=",
-                            {
-                                "Ref":"RDS"
-                            },
-                            "'",
-                            ">> env/properties \n",
+                            "sudo mkdir env \n" ,
+                            "echo export 'PROFILE_NAME=AWS' >> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_HOST=",{
+                                "Fn::GetAtt":[
+                                    "RDS",
+                                    "Endpoint.Address"
+                                ]
+                            },"'"," >> env/properties \n",
                             "echo export 'RDS_MYSQL_DB_PORT=",
                             {
                                 "Fn::GetAtt":[
                                     "RDS",
                                     "Endpoint.Port"
                                 ]
-                            },
-                            "'",
-                            ">> env/properties \n",
-                            "echo export 'RDS_MYSQL_DB_USERNAME=",
-                            {
-                                "Ref":"RDSMasterUsername"
-                            },
-                            "'",
-                            ">> env/properties \n",
-                            "echo export 'RDS_MYSQL_DB_PASSWORD=",
-                            {
-                                "Ref":"RDSMasterpassword"
-                            },
-                            "'",
-                            ">> env/properties \n",
-                            "echo export 'AWS_REGION=",
-                            {
-                                "Ref":"REGION"
-                            },
-                            "'",
-                            ">> env/properties \n",
-                            "echo export 'AWS_S3_BUCKET_NAME=",
-                            {
-                                "Ref":"S3Bucket"
-                            },
-                            "'",
-                            ">> env/properties \n",
-                            "echo export AWS_S3_BUCKET_URL=",
+                            },"'"," >> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_USERNAME=",{"Ref":"RDSMasterUsername"},"'"," >> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_PASSWORD=",{"Ref":"RDSMasterpassword"},"'"," >> env/properties \n",
+                            "echo export 'AWS_REGION=",{"Ref":"REGION"},"'"," >> env/properties \n",
+                            "echo export 'AWS_S3_BUCKET_NAME=",{"Ref":"S3Bucket"},"'"," >> env/properties \n",
+                            "echo export 'AWS_S3_BUCKET_URL=",
                             {
                                 "Fn::GetAtt":[
                                     "S3Bucket",
                                     "WebsiteURL"
                                 ]
-                            },
-                            "'",
-                            ">> env/properties \n",
+                            },"'"," >> env/properties \n",
                             "echo export AWS_S3_BUCKET_DOMAIN=",
                             {
                                 "Fn::GetAtt":[
                                     "S3Bucket",
                                     "DomainName"
                                 ]
-                            },
-                            "'",
-                            ">> env/webapp.properties \n"
-                          
+                            },"'"," >> env/properties \n"
                         ]
                       ]
                     }
