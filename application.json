@@ -1,0 +1,654 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Launch EC2 - CSYE 6225 Spring 2020 & Set up Networking",
+
+    "Parameters": {
+        "REGION":{
+            "Description": "AWS Region",
+            "Default": "us-east-1",
+            "Type": "String"
+        },
+        "EC2InstanceTypeParameter": {
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": ["t2.micro", "m1.small", "m1.large"],
+            "Description": "Enter t2.micro, m1.small, or m1.large. Default is t2.micro."
+        },
+        "EC2DisableApiTermination":{
+            "Description": "Protect against accidental termination",
+            "Default": "false",
+            "Type": "String"
+        },
+        "EC2AmiImageID":{
+            "Description": "Customed AMI Image ID",
+            "Default": "ami-0ce88269dfd1af931",
+            "Type": "String"
+        },
+        "EC2RootVolumType":{
+            "Description": "The volum type",
+            "Default": "gp2",
+            "AllowedValues":["gp2","io1","sc1","st1","standard"],
+            "Type":"String"
+        },
+        "EC2RootVolumSize":{
+            "Description": "The Volum Size",
+            "Default": "20",
+            "Type": "Number"
+        },
+        
+        "AvailableZone":{
+            "Description": "Available Zone",
+            "Default": "us-east-1a",
+            "Type": "String"
+        },
+        "RDSEngine":{
+            "Description": "The Engine",
+            "Default": "MySQL",
+            "Type": "String"
+        },
+        
+        "RDSDBInstanceIdentifier":{
+            "Description": "The DBInstanceIdentifier",
+            "Default": "csye6225-spring2020",
+            "Type": "String"
+        },
+        "RDSDBInstanceClass":{
+            "Description": "The RDS DBInstanceClass",
+            "Default": "db.t2.micro",
+            "Type": "String"
+        },
+        "RDSMultiAtoZdeployment":{
+            "Description": "The MultiAtoZ-deployment",
+            "Default": "false",
+            "Type": "String"
+        },
+        "RDSMasterUsername":{
+            "Description": "The Master Username",
+            "Default": "dbuser",
+            "Type": "String"
+        },
+        "RDSMasterpassword":{
+            "Description": "The Master Password",
+            "Default": "adminAdmin123",
+            "Type": "String"
+        },
+        "RDSPubliclyAccessible":{
+            "Description": "The Publicly Accessible",
+            "Default": "false",
+            "Type": "String"
+        },
+        "RDSDBName":{
+            "Description": "The DataBase Name",
+            "Default": "csye6225",
+            "Type": "String"
+        },
+        "RDSDBSubnetGroupName":{
+            "Description": "The DBSubnetGroupName",
+            "Default": "",
+            "Type": "String"
+        },
+        "S3AccessControl":{
+            "Description": "S3-AccessControl",
+            "Default": "Private",
+            "Type": "String"
+        },
+        "VPCNAME": {
+            "Description": "The stack name",
+            "Default": "test2",
+            "Type": "String"
+        },
+        "IGWNAME": {
+            "Description": "The Internet Gateway name",
+            "Default": "test",
+            "Type": "String"
+        },
+        "PRIVATEROUTETABLENAME": {
+            "Description": "The Private Route Table name",
+            "Default": "test",
+            "Type": "String"
+        },
+        "PUBLICROUTETABLENAME": {
+            "Description": "The Public Route Table name",
+            "Default": "test",
+            "Type": "String"
+        },
+        "VPCCIDRBLOCK": {
+            "Description": "CIDRBlock id",
+            "Default": "10.192.0.0/16",
+            "Type": "String"
+        },
+        "Subnet1CIDRBLOCK":{
+            "Description": "CIDRBlock id",
+            "Default": "10.192.10.0/24",
+            "Type": "String"
+        },
+        "Subnet2CIDRBLOCK":{
+            "Description": "CIDRBlock id",
+            "Default": "10.192.11.0/24",
+            "Type": "String"
+        },
+        "Subnet3CIDRBLOCK":{
+            "Description": "CIDRBlock id",
+            "Default": "10.192.20.0/24",
+            "Type": "String"
+        },
+        "AWSREGION1":{
+            "Description": "region 1",
+            "Type": "String"
+          },
+          "AWSREGION2":{
+            "Description": "region 2",
+            "Type": "String"
+          },
+          "AWSREGION3":{
+            "Description": "region 3",
+            "Type": "String"
+          }
+    },
+    "Resources": {
+        "EC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {"Ref":"EC2AmiImageID"},
+                "InstanceType": {
+                    "Ref": "EC2InstanceTypeParameter"
+                },
+                "DisableApiTermination" : {"Ref":"EC2DisableApiTermination"},
+               
+                "IamInstanceProfile" :{"Ref":"EC2IAMInstanceProfile"},
+                "SecurityGroupIds": [
+                    {
+                        "Fn::GetAtt": [
+                            "EC2SecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ],
+                "KeyName": "csye6225",
+                "SubnetId": {
+                    "Ref":"Subnet1"
+                },
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "VolumeType": {"Ref":"EC2RootVolumType"},
+                            "VolumeSize": {"Ref": "EC2RootVolumSize"}
+                        }
+                    }
+                ],
+                "Tags" : [ 
+                    {
+                        "Key":"Name",
+                        "Value":"EC2-Assignment6"
+                    } 
+                ],
+                "UserData" : {
+                    "Fn::Base64": {
+                      "Fn::Join": [
+                        "\n",
+                        [
+                            "#!/bin/bash -xe ",
+                            "set -e -x \n",
+                            "sudo apt-get update \n",
+                            "echo export PROFILE_NAME=AWS >> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_HOST=",
+                            {
+                                "Ref":"RDS"
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_PORT=",
+                            {
+                                "Fn::GetAtt":[
+                                    "RDS",
+                                    "Endpoint.Port"
+                                ]
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_USERNAME=",
+                            {
+                                "Ref":"RDSMasterUsername"
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export 'RDS_MYSQL_DB_PASSWORD=",
+                            {
+                                "Ref":"RDSMasterpassword"
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export 'AWS_REGION=",
+                            {
+                                "Ref":"REGION"
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export 'AWS_S3_BUCKET_NAME=",
+                            {
+                                "Ref":"S3Bucket"
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export AWS_S3_BUCKET_URL=",
+                            {
+                                "Fn::GetAtt":[
+                                    "S3Bucket",
+                                    "WebsiteURL"
+                                ]
+                            },
+                            "'",
+                            ">> env/properties \n",
+                            "echo export AWS_S3_BUCKET_DOMAIN=",
+                            {
+                                "Fn::GetAtt":[
+                                    "S3Bucket",
+                                    "DomainName"
+                                ]
+                            },
+                            "'",
+                            ">> env/webapp.properties \n"
+                          
+                        ]
+                      ]
+                    }
+                }
+            }
+        },
+        "EC2SecurityGroup":{
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Ref":"VPC"
+                },
+                "GroupName": "launch-wizard-8",
+                "GroupDescription": "ec2 SecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3000",
+                        "ToPort": "3000",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EC2IAMInstanceProfile":{
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+                "InstanceProfileName" : "EC2Profile",
+                "Path" : "/",
+                "Roles" : [
+                    {"Ref":"EC2IAMROLE"}
+                    ]
+            }
+        },
+        "EC2IAMROLE":{
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": [ "ec2.amazonaws.com" ]
+                    },
+                    "Action": [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "Path": "/",
+                "Description" : "EC2-CSYE6225 IAM Role",
+                "RoleName" : "EC2-CSYE6225"
+            }
+        },
+        "EC2IAMPolicy":{
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "CodeDeployEC2S3",
+                "PolicyDocument": {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:Get*",
+                            "s3:List*",
+                            "s3:PutObject"
+                        ],
+                        "Resource": {
+                            "Fn::GetAtt": [
+                                "S3Bucket",
+                                "Arn"
+                              ]
+                        }
+                    } ]
+                },
+                "Roles": [  {"Ref":"EC2IAMROLE"}]
+            }
+        },
+        "RDSDBSecurityGroup":{
+            "Type": "AWS::EC2::SecurityGroup",
+        	"Properties": {
+        	"Tags" :  [{"Key" : "Name", "Value" : "RDSSG"}],
+            "GroupName":"csye6225-rds",
+            "GroupDescription": "database",
+            "VpcId":{"Ref":"VPC"},
+            "SecurityGroupIngress": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": "3306",
+                    "ToPort": "3306",
+                    "SourceSecurityGroupId" : {"Ref":"EC2SecurityGroup"}
+                }
+            ]
+        	}
+        },
+        "RDS":{
+            "Type" : "AWS::RDS::DBInstance",
+            "Properties" : {
+                "AllocatedStorage" : "100",
+                "DBInstanceClass" : {"Ref":"RDSDBInstanceClass"},
+                "DBInstanceIdentifier" : {"Ref":"RDSDBInstanceIdentifier"},
+                "VPCSecurityGroups" : [
+                    {"Ref":"RDSDBSecurityGroup"}
+                ],
+                "DBName" : {"Ref":"RDSDBName"},
+                "Engine":{"Ref":"RDSEngine"},
+                "MasterUsername" : {"Ref":"RDSMasterUsername"},
+                "MasterUserPassword" : {"Ref":"RDSMasterpassword"},
+                "MultiAZ" : {"Ref":"RDSMultiAtoZdeployment"},
+                "PubliclyAccessible" : {"Ref":"RDSPubliclyAccessible"},
+                "DBSubnetGroupName" : {"Ref":"SubnetGroup"}
+            }
+        },
+        "S3Bucket":{
+            "Type" : "AWS::S3::Bucket",
+            "Properties" : {
+                "AccessControl" : {"Ref":"S3AccessControl"},
+                "BucketEncryption" : {
+                    "ServerSideEncryptionConfiguration":[
+                        {   
+                            "ServerSideEncryptionByDefault":{
+                                "SSEAlgorithm" : "aws:kms" 
+                            }
+                        }
+                    ]
+                },
+                "LifecycleConfiguration" : {
+                    "Rules": [
+                        {
+                            "Id": "30day",
+                            "Status": "Enabled",
+                            "Prefix":"",
+                            "ExpirationInDays":"365",
+                            "Transitions":[
+                                {
+                                "StorageClass":"STANDARD_IA",
+                                "TransitionInDays":"30"
+                            }
+                        ]
+                            
+                        }
+                     ]
+                }
+            }
+        },
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+            "CidrBlock": {
+                "Ref": "VPCCIDRBLOCK"
+            },
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": {
+                        "Ref": "VPCNAME"
+                    }
+                }
+            ]
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+            "Tags": [
+                {
+                "Key": "Name",
+                    "Value": {
+                        "Ref": "IGWNAME"
+                    }
+                }
+            ]
+            }
+        },
+        "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "InternetGateway"
+                }
+            }
+        },
+        "PrivateRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "Tags": [
+                    {
+                    "Key": "Name",
+                    "Value": {
+                        "Ref": "PRIVATEROUTETABLENAME"
+                    }
+                    }
+                ]
+            }
+        },
+        "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "Tags": [
+                    {
+                    "Key": "Name",
+                    "Value": {
+                        "Ref": "PUBLICROUTETABLENAME"
+                    }
+                    }
+                ]
+            }
+        },
+        "PublicInternetRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "InternetGateway",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "InternetGateway"
+                },
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                }
+            }
+        },
+        "Subnet1": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AWSREGION1"
+                },
+                "CidrBlock": {
+                    "Ref": "Subnet1CIDRBLOCK"
+                },
+                "MapPublicIpOnLaunch": true,
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "Subnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Ref": "AWSREGION2"
+                },
+                "CidrBlock": {
+                    "Ref": "Subnet2CIDRBLOCK"
+                },
+                "MapPublicIpOnLaunch": true,
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "Subnet3": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone":  {
+                    "Ref": "AWSREGION3"
+                },
+                "CidrBlock": {
+                    "Ref": "Subnet3CIDRBLOCK"
+                },
+                "MapPublicIpOnLaunch": true,
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "SubnetGroup":{
+            "Type" : "AWS::RDS::DBSubnetGroup",
+            "Properties" : {
+                "DBSubnetGroupDescription" : "String",
+                "DBSubnetGroupName" : "RDSSubnetGroup",
+                "SubnetIds" : [ 
+                    {"Ref":"Subnet1"},
+                    {"Ref":"Subnet2"},
+                    {"Ref":"Subnet3"}
+                 ],
+                "Tags" : [ {
+                    "Key" : "Name",
+                    "Value" : "rds-SubnetGroup"
+                  } ]
+              }
+        },
+        
+        "SubnetRouteTable1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                },
+                "SubnetId": {
+                    "Ref": "Subnet1"
+                }
+            }
+        },
+        "SubnetRouteTable2": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable"
+                },
+                "SubnetId": {
+                    "Ref": "Subnet2"
+                }
+            }
+        },
+        "SubnetRouteTable3": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable"
+                },
+                "SubnetId": {
+                    "Ref": "Subnet3"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "VPCId":{
+            "Description":"VPC",
+            "Value":{
+                "Ref":"VPC"
+            }
+
+        },
+
+        "RDSINFO":{
+            "Description":"RDS Endpoint.Address",
+            "Value":{
+                "Fn::GetAtt":[
+                    "RDS",
+                    "Endpoint.Address"
+                ]
+            }
+        },
+        "InstanceId": {
+          "Description": "InstanceId of the newly created EC2 instance",
+          "Value": {
+            "Ref": "EC2Instance"
+          }
+        },
+        "AZ": {
+          "Description": "Availability Zone of the newly created EC2 instance",
+          "Value": {
+            "Fn::GetAtt": [
+              "EC2Instance",
+              "AvailabilityZone"
+            ]
+          }
+        },
+        "PublicDNS": {
+          "Description": "Public DNSName of the newly created EC2 instance",
+          "Value": {
+            "Fn::GetAtt": [
+              "EC2Instance",
+              "PublicDnsName"
+            ]
+          }
+        },
+        "PublicIP": {
+          "Description": "Public IP address of the newly created EC2 instance",
+          "Value": {
+            "Fn::GetAtt": [
+              "EC2Instance",
+              "PublicIp"
+            ]
+          }
+        }
+    }
+  
+}
