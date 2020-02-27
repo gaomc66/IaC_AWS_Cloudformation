@@ -188,7 +188,7 @@
                       "Fn::Join": [
                         "",
                         [
-                            "#!/bin/bash -xe ",
+                            "#!/bin/bash -v \n",
                             "set -e -x \n",
                             "sudo apt-get update \n",
                             "sudo mkdir env \n" ,
