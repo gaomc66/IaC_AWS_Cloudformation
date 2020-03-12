@@ -5,7 +5,6 @@
     "Parameters": {
         "REGION":{
             "Description": "AWS Region",
-            "Default": "us-east-1",
             "Type": "String"
         },
         "EC2InstanceTypeParameter": {
@@ -21,7 +20,6 @@
         },
         "EC2AmiImageID":{
             "Description": "Customed AMI Image ID",
-            "Default": "ami-0ce88269dfd1af931",
             "Type": "String"
         },
         "EC2RootVolumType":{
@@ -35,7 +33,11 @@
             "Default": "20",
             "Type": "Number"
         },
-        
+        "EC2KeyPair":{
+            "Description": "The Keypair of EC2 instance",
+            "Default": "csye6225",
+            "Type": "String"
+        },
         "AvailableZone":{
             "Description": "Available Zone",
             "Default": "us-east-1a",
@@ -164,7 +166,7 @@
                         ]
                     }
                 ],
-                "KeyName": "csye6225",
+                "KeyName": {"Ref":"EC2KeyPair"},
                 "SubnetId": {
                     "Ref":"Subnet1"
                 },
@@ -180,7 +182,7 @@
                 "Tags" : [ 
                     {
                         "Key":"Name",
-                        "Value":"EC2-Assignment6"
+                        "Value":"EC2-Assignment7"
                     } 
                 ],
                 "UserData" : {
@@ -191,39 +193,113 @@
                             "#!/bin/bash -v \n",
                             "set -e -x \n",
                             "sudo apt-get update \n",
-                            "sudo mkdir env \n" ,
-                            "echo export 'PROFILE_NAME=AWS' >> env/properties.sh \n",
-                            "echo export 'RDS_MYSQL_DB_HOST=",{
-                                "Fn::GetAtt":[
-                                    "RDS",
-                                    "Endpoint.Address"
-                                ]
-                            },"'"," >> env/properties.sh \n",
-                            "echo export 'RDS_MYSQL_DB_PORT=",
+                            "echo '#!/bin/sh' >> /opt/tomcat/bin/setenv.sh",
                             {
-                                "Fn::GetAtt":[
-                                    "RDS",
-                                    "Endpoint.Port"
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.url=\"jdbc:mysql://",
+                                      {
+                                         "Fn::GetAtt":[
+                                            "RDS",
+                                            "Endpoint.Address"
+                                         ]
+                                      },
+                                      ":",
+                                      {
+                                        "Fn::GetAtt":[
+                                            "RDS",
+                                            "Endpoint.Port"
+                                        ]
+                                      },
+                                      "/csye6225\"\"'>> /opt/tomcat/bin/setenv.sh \n"
+                                   ]
                                 ]
-                            },"'"," >> env/properties.sh \n",
-                            "echo export 'RDS_MYSQL_DB_USERNAME=",{"Ref":"RDSMasterUsername"},"'"," >> env/properties.sh \n",
-                            "echo export 'RDS_MYSQL_DB_PASSWORD=",{"Ref":"RDSMasterpassword"},"'"," >> env/properties.sh \n",
-                            "echo export 'AWS_REGION=",{"Ref":"REGION"},"'"," >> env/properties.sh \n",
-                            "echo export 'AWS_S3_BUCKET_NAME=",{"Ref":"S3Bucket"},"'"," >> env/properties.sh \n",
-                            "echo export 'AWS_S3_BUCKET_URL=",
-                            {
-                                "Fn::GetAtt":[
-                                    "S3Bucket",
-                                    "WebsiteURL"
+                             },
+                             
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.username=",
+                                      {
+                                         "Ref":"RDSMasterUsername"
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
                                 ]
-                            },"'"," >> env/properties.sh \n",
-                            "echo export AWS_S3_BUCKET_DOMAIN=",
-                            {
-                                "Fn::GetAtt":[
-                                    "S3Bucket",
-                                    "DomainName"
+                             },
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.password=",
+                                      {
+                                         "Ref":"RDSMasterpassword"
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
                                 ]
-                            },"'"," >> env/properties.sh \n"
+                             },
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.name=",
+                                      {
+                                         "Ref":"S3Bucket"
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
+                                ]
+                             },
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.url=",
+                                      {
+                                        "Fn::GetAtt":[
+                                            "S3Bucket",
+                                            "WebsiteURL"
+                                        ]
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
+                                ]
+                             },
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Daws.region=",
+                                      {
+                                        "Ref":"REGION"
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
+                                ]
+                             },
+                             {
+                                "Fn::Join":[
+                                   "",
+                                   [
+                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.dimain=",
+                                      {
+                                        "Fn::GetAtt":[
+                                            "S3Bucket",
+                                            "DomainName"
+                                        ]
+                                      },
+                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
+                                   ]
+                                ]
+                             },
+
+                             "chmod +x /opt/tomcat/bin/setenv.sh\n",
+                             "systemctl enable tomcat.service\n",
+                             "systemctl start tomcat.service\n"
+
                         ]
                       ]
                     }
@@ -278,28 +354,11 @@
                 "InstanceProfileName" : "EC2Profile",
                 "Path" : "/",
                 "Roles" : [
-                    {"Ref":"EC2IAMROLE"}
-                    ]
+                    {"Ref":"CodeDeployEC2ServiceRole"}
+                ]
             }
         },
-        "EC2IAMROLE":{
-            "Type" : "AWS::IAM::Role",
-            "Properties" : {
-                "AssumeRolePolicyDocument" : {
-                    "Version" : "2012-10-17",
-                    "Statement": [ {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": [ "ec2.amazonaws.com" ]
-                    },
-                    "Action": [ "sts:AssumeRole" ]
-                    } ]
-                },
-                "Path": "/",
-                "Description" : "EC2-CSYE6225 IAM Role",
-                "RoleName" : "EC2-CSYE6225"
-            }
-        },
+        
         "EC2IAMPolicy":{
             "Type": "AWS::IAM::Policy",
             "Properties": {
@@ -340,9 +399,63 @@
                         }
                     ]
                 },
-                "Roles": [  {"Ref":"EC2IAMROLE"}]
+                "Roles": [  {"Ref":"CodeDeployEC2ServiceRole"}]
             }
         },
+        "circleciec2ami":{
+            "Type":"AWS::IAM::Policy",
+            "Properties":{
+               "PolicyDocument":{
+                  "Version":"2012-10-17",
+                  "Statement":[
+                     {
+                        "Effect":"Allow",
+                        "Action":[
+                           "ec2:AttachVolume",
+                           "ec2:AuthorizeSecurityGroupIngress",
+                           "ec2:CopyImage",
+                           "ec2:CreateImage",
+                           "ec2:CreateKeypair",
+                           "ec2:CreateSecurityGroup",
+                           "ec2:CreateSnapshot",
+                           "ec2:CreateTags",
+                           "ec2:CreateVolume",
+                           "ec2:DeleteKeyPair",
+                           "ec2:DeleteSecurityGroup",
+                           "ec2:DeleteSnapshot",
+                           "ec2:DeleteVolume",
+                           "ec2:DeregisterImage",
+                           "ec2:DescribeImageAttribute",
+                           "ec2:DescribeImages",
+                           "ec2:DescribeInstances",
+                           "ec2:DescribeInstanceStatus",
+                           "ec2:DescribeRegions",
+                           "ec2:DescribeSecurityGroups",
+                           "ec2:DescribeSnapshots",
+                           "ec2:DescribeSubnets",
+                           "ec2:DescribeTags",
+                           "ec2:DescribeVolumes",
+                           "ec2:DetachVolume",
+                           "ec2:GetPasswordData",
+                           "ec2:ModifyImageAttribute",
+                           "ec2:ModifyInstanceAttribute",
+                           "ec2:ModifySnapshotAttribute",
+                           "ec2:RegisterImage",
+                           "ec2:RunInstances",
+                           "ec2:StopInstances",
+                           "ec2:TerminateInstances"
+                        ],
+                        "Resource":"*"
+                     }
+                  ]
+               },
+               "PolicyName":"circleci-ec2-ami",
+               "Users":[
+                  "circleci"
+               ]
+            }
+         },
+         
         "RDSDBSecurityGroup":{
             "Type": "AWS::EC2::SecurityGroup",
         	"Properties": {
@@ -410,6 +523,178 @@
                 }
             }
         },
+        "CodeDeployEC2S3Policy":{
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "CodeDeploy-EC2-S3",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:Get*",
+                                "s3:List*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                            "arn:aws:s3:::codedeploy.mengchen-gao.me",
+                            "arn:aws:s3:::codedeploy.mengchen-gao.me/*"
+                            ]
+                        }
+                    ]
+                },
+                "Roles": [  {"Ref":"CodeDeployEC2ServiceRole"}]
+            }
+        },
+        "CircleCIUploadToS3Policy":{
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "CircleCI-Upload-To-S3",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:Get*",
+                                "s3:List*"
+                            ],
+                            "Resource": [
+                                "arn:aws:s3:::codedeploy.mengchen-gao.me",
+                                "arn:aws:s3:::codedeploy.mengchen-gao.me/*"
+                            ]
+                        }
+                    ]
+                },
+                "Users":[
+                    "circleci"
+                ]
+            }
+        },
+        "CircleCICodeDeployPolicy":{
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "CircleCI-Code-Deploy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "codedeploy:RegisterApplicationRevision",
+                          "codedeploy:GetApplicationRevision"
+                        ],
+                        "Resource": [
+                          "arn:aws:codedeploy:us-east-1:724963175368:application:csye6225-webapp"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "codedeploy:CreateDeployment",
+                          "codedeploy:GetDeployment"
+                        ],
+                        "Resource": [
+                          "*"
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "codedeploy:GetDeploymentConfig"
+                        ],
+                        "Resource": [
+                          "arn:aws:codedeploy:us-east-1:724963175368:deploymentconfig:CodeDeployDefault.OneAtATime",
+                          "arn:aws:codedeploy:us-east-1:724963175368:deploymentconfig:CodeDeployDefault.HalfAtATime",
+                          "arn:aws:codedeploy:us-east-1:724963175368:deploymentconfig:CodeDeployDefault.AllAtOnce"
+                        ]
+                      }
+                    ]
+                },
+                "Users":[
+                    "circleci"
+                ]  
+            }
+        },
+        "CodeDeployEC2ServiceRole":{
+            "Type":"AWS::IAM::Role",
+            "Properties":{
+                "RoleName":"CodeDeployEC2ServiceRole",
+               "AssumeRolePolicyDocument":{
+                    "Version": "2012-10-17",
+                    "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "ec2.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                    ]
+               },
+                "Path":"/"
+            }            
+        },
+        "CodeDeployServiceRole":{
+            "Type":"AWS::IAM::Role",
+            "Properties":{
+                "RoleName":"CodeDeployServiceRole",
+               "AssumeRolePolicyDocument":{
+                    "Version": "2012-10-17",
+                    "Statement": [
+                    {
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": {
+                        "Service": "codedeploy.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                    ]
+               },
+               "ManagedPolicyArns":[
+                "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+                ],
+                "Path":"/"
+            }            
+        },
+        "CodeDeployApplication":{
+            "Type" : "AWS::CodeDeploy::Application",
+            "Properties" : {
+                "ApplicationName" : "csye6225-webapp",
+                "ComputePlatform" : "Server"
+              }
+        },
+        "CodeDeployDeploymentGroup":{
+            "Type" : "AWS::CodeDeploy::DeploymentGroup",
+            "Properties" : {
+                "ApplicationName" : {"Ref":"CodeDeployApplication"},
+                "AutoRollbackConfiguration" : {
+                  "Enabled" : true,
+                  "Events" : [ "DEPLOYMENT_FAILURE" ]
+                },
+                "DeploymentConfigName" : "CodeDeployDefault.OneAtATime",
+                "DeploymentGroupName" : "csye6225-webapp-deployment",
+                "DeploymentStyle" : {
+                    "DeploymentOption" : "WITHOUT_TRAFFIC_CONTROL",
+                    "DeploymentType" : "IN_PLACE"
+                  },
+                "Ec2TagFilters" : [
+                    {
+                    "Key" : "Name",
+                    "Type" : "KEY_AND_VALUE",
+                    "Value" : "EC2-Assignment7"
+                    }
+                 ],
+                "ServiceRoleArn" : {
+                    "Fn::GetAtt":[
+                        "CodeDeployServiceRole",
+                        "Arn"
+                    ]
+                }
+              }
+          },
         "VPC": {
             "Type": "AWS::EC2::VPC",
             "Properties": {
@@ -597,8 +882,9 @@
             "Value":{
                 "Ref":"VPC"
             }
-
+          
         },
+       
 
         "RDSINFO":{
             "Description":"RDS Endpoint.Address",
