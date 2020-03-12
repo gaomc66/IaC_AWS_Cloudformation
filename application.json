@@ -193,113 +193,45 @@
                             "#!/bin/bash -v \n",
                             "set -e -x \n",
                             "sudo apt-get update \n",
-                            "echo '#!/bin/sh' >> /opt/tomcat/bin/setenv.sh",
+                            "sudo mkdir env \n" ,
+                            "sudo su \n",
+                            "echo export #!/bin/bash -v  >> env/properties.sh \n",
+                            "echo export 'PROFILE_NAME=AWS' >> env/properties.sh \n",
+                            "echo export 'RDS_MYSQL_DB_HOST=",{
+                                "Fn::GetAtt":[
+                                    "RDS",
+                                    "Endpoint.Address"
+                                ]
+                            },"'"," >> env/properties.sh \n",
+                            "echo export 'RDS_MYSQL_DB_PORT=",
                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.url=\"jdbc:mysql://",
-                                      {
-                                         "Fn::GetAtt":[
-                                            "RDS",
-                                            "Endpoint.Address"
-                                         ]
-                                      },
-                                      ":",
-                                      {
-                                        "Fn::GetAtt":[
-                                            "RDS",
-                                            "Endpoint.Port"
-                                        ]
-                                      },
-                                      "/csye6225\"\"'>> /opt/tomcat/bin/setenv.sh \n"
-                                   ]
+                                "Fn::GetAtt":[
+                                    "RDS",
+                                    "Endpoint.Port"
                                 ]
-                             },
-                             
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.username=",
-                                      {
-                                         "Ref":"RDSMasterUsername"
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
+                            },"'"," >> env/properties.sh \n",
+                            "echo export 'RDS_MYSQL_DB_USERNAME=",{"Ref":"RDSMasterUsername"},"'"," >> env/properties.sh \n",
+                            "echo export 'RDS_MYSQL_DB_PASSWORD=",{"Ref":"RDSMasterpassword"},"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_REGION=",{"Ref":"REGION"},"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_S3_BUCKET_NAME=",{"Ref":"S3Bucket"},"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_S3_BUCKET_URL=",
+                            {
+                                "Fn::GetAtt":[
+                                    "S3Bucket",
+                                    "WebsiteURL"
                                 ]
-                             },
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dspring.datasource.password=",
-                                      {
-                                         "Ref":"RDSMasterpassword"
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
+                            },"'"," >> env/properties.sh \n",
+                            "echo export AWS_S3_BUCKET_DOMAIN=",
+                            {
+                                "Fn::GetAtt":[
+                                    "S3Bucket",
+                                    "DomainName"
                                 ]
-                             },
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.name=",
-                                      {
-                                         "Ref":"S3Bucket"
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
-                                ]
-                             },
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.url=",
-                                      {
-                                        "Fn::GetAtt":[
-                                            "S3Bucket",
-                                            "WebsiteURL"
-                                        ]
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
-                                ]
-                             },
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Daws.region=",
-                                      {
-                                        "Ref":"REGION"
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
-                                ]
-                             },
-                             {
-                                "Fn::Join":[
-                                   "",
-                                   [
-                                      "sudo echo 'JAVA_OPTS=\"$JAVA_OPTS -Dbucket.dimain=",
-                                      {
-                                        "Fn::GetAtt":[
-                                            "S3Bucket",
-                                            "DomainName"
-                                        ]
-                                      },
-                                      "\"' >> /opt/tomcat/bin/setenv.sh\n"
-                                   ]
-                                ]
-                             },
-
-                             "chmod +x /opt/tomcat/bin/setenv.sh\n",
-                             "systemctl enable tomcat.service\n",
-                             "systemctl start tomcat.service\n"
-
+                            },"'"," >> env/properties.sh \n",
+                            "chmod +x env/properties.sh \n",
+                            "source env/properties.sh \n",
+                            "systemctl stop tomcat8 \n"
+                            
                         ]
                       ]
                     }
