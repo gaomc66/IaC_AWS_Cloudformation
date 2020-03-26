@@ -232,7 +232,6 @@
                         [
                             "#!/bin/bash -v \n",
                             "set -e -x \n",
-                            "sudo apt-get update \n",
                             "sudo mkdir env \n" ,
                             "sudo su \n",
                             "echo export #!/bin/bash -v  >> env/properties.sh \n",
@@ -272,7 +271,6 @@
                             "touch /dev/csye6225.log \n",
                             "chmod 777 /dev/csye6225.log \n",
                             "sudo systemctl stop tomcat8 \n",
-                            "sudo apt-get install -y maven \n"
                         ]
                       ]
                     }
