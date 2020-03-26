@@ -241,8 +241,8 @@
                                 ]
                             },"'"," >> env/properties.sh \n",
                             "chmod +x env/properties.sh \n",
-                            
-                            "source ~/.profile \n",
+                            "touch /dev/csye6225.log \n",
+                            "chmod 777 /dev/csye6225.log \n",
                             "sudo systemctl stop tomcat8 \n",
                             "sudo apt-get install -y maven \n"
                         ]
