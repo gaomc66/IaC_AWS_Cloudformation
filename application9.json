@@ -270,7 +270,7 @@
                             "chmod +x env/properties.sh \n",
                             "touch /dev/csye6225.log \n",
                             "chmod 777 /dev/csye6225.log \n",
-                            "sudo systemctl stop tomcat8 \n",
+                            "sudo systemctl stop tomcat8 \n"
                         ]
                       ]
                     }
@@ -281,7 +281,7 @@
             "Type" : "AWS::AutoScaling::AutoScalingGroup",
             "Properties" : {
                 "AutoScalingGroupName" : "asgA9",
-                "Cooldown" : "60",
+                "Cooldown" : "300",
                 "DesiredCapacity" : "2",
                 "LaunchConfigurationName" : {"Ref":"ASGLaunchConfiguration"},
                 "MaxSize" : {"Ref":"AutoScalingMaxSize"},
@@ -316,7 +316,7 @@
               "AutoScalingGroupName": {
                 "Ref": "AutoScalingGroup"
               },
-              "Cooldown": "60",
+              "Cooldown": "300",
               "ScalingAdjustment": "1"
             }
         },
@@ -327,20 +327,20 @@
                 "AutoScalingGroupName": {
                 "Ref": "AutoScalingGroup"
                 },
-                "Cooldown": "60",
+                "Cooldown": "300",
                 "ScalingAdjustment": "-1"
             }
         },
         "CPUAlarmHigh": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+              "AlarmDescription": "Scale-up if CPU > 20% for 10 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "90",
+              "Threshold": "20",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleUpPolicy"
@@ -360,13 +360,13 @@
         "CPUAlarmLow": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+              "AlarmDescription": "Scale-down if CPU < 1% for 10 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "70",
+              "Threshold": "10",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleDownPolicy"
