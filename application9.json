@@ -21,6 +21,14 @@
             "Default": "5",
             "Description": "The max size of auto scaling group"
         },
+        "HostedZoneId" :{
+            "Type": "String",
+            "Description": "Hosted Zone Id"
+        } ,
+        "HostedZoneName" : {
+            "Type": "String",
+            "Description": "Hosted Zone Name"
+        },
         "EC2TagValue":{
             "Type": "String",
             "Default": "EC2Assignment9",
@@ -192,8 +200,8 @@
                         ]
                     }
                 },
-                "HostedZoneId" : "Z1MLIVFM5LS9KD",
-                "Name" : "dev.mengchen-gao.me.",
+                "HostedZoneId" : {"Ref":"HostedZoneId"},
+                "Name" : {"Ref":"HostedZoneName"},
                 "Type" : "A"
               }
         },
@@ -295,7 +303,7 @@
                             "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
                             "autoscaling:TEST_NOTIFICATION"
                         ],
-                        "TopicARN" : "arn:aws:sns:us-east-1:724963175368:scale_up_alarm"   
+                        "TopicARN" : {"Ref":"SNSTopic"}  
                     }
                 ],
                 "Tags" : [ 
@@ -307,6 +315,18 @@
                 ],
                 "TargetGroupARNs" : [ {"Ref":"LoadBalancerTargetGroup"} ],
                 "VPCZoneIdentifier" : [ {"Ref":"Subnet1"}, {"Ref":"Subnet2"}, {"Ref":"Subnet3"}]
+            }
+        },
+        "SNSTopic":{
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "Subscription" : [ 
+                    {
+                        "Endpoint" : "gaomc66@gmail.com",
+                        "Protocol" : "EMAIL"
+                    }
+                ],
+                "TopicName" : "scale_alarm"
             }
         },
         "WebServerScaleUpPolicy": {
@@ -334,13 +354,13 @@
         "CPUAlarmHigh": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-up if CPU > 20% for 10 minutes",
+              "AlarmDescription": "Scale-up if CPU > 90% for 1 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "20",
+              "Threshold": "90",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleUpPolicy"
@@ -360,13 +380,13 @@
         "CPUAlarmLow": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-down if CPU < 1% for 10 minutes",
+              "AlarmDescription": "Scale-down if CPU < 70% for 1 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "10",
+              "Threshold": "70",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleDownPolicy"
@@ -392,7 +412,7 @@
                 "SecurityGroups" : [ 
                     {
                         "Fn::GetAtt": [
-                            "EC2SecurityGroup",
+                            "ELBSecurityGroup",
                             "GroupId"
                         ]
                     }
@@ -438,14 +458,14 @@
                 "VpcId" : {"Ref":"VPC"}
             }
         },
-        "EC2SecurityGroup":{
+        "ELBSecurityGroup":{
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "VpcId": {
                     "Ref":"VPC"
                 },
-                "GroupName": "launch-wizard-8",
-                "GroupDescription": "ec2 SecurityGroup",
+                "GroupName": "ELBsgA9",
+                "GroupDescription": "Elastic Load Balancer SecurityGroup",
                 "SecurityGroupIngress": [
                     {
                         "IpProtocol": "tcp",
@@ -476,6 +496,73 @@
                         "FromPort": "3000",
                         "ToPort": "3000",
                         "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EC2SecurityGroup":{
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Ref":"VPC"
+                },
+                "GroupName": "EC2sgA9",
+                "GroupDescription": "ec2 SecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3000",
+                        "ToPort": "3000",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
                     }
                 ]
             }
