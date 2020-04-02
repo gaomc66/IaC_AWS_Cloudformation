@@ -3,6 +3,18 @@
     "Description": "Launch EC2 - CSYE 6225 Spring 2020 & Set up Networking",
 
     "Parameters": {
+        "EmailDomain":{
+            "Type": "String",
+            "Default": "test@prod.mengchen-gao.me"
+        },
+        "DYNAMODBNAMEA10":{
+            "Type":"String",
+            "Default":"DynamoDBA10"
+        },
+        "DYNAMODBPRKEYA10":{
+            "Type":"String",
+            "Default":"username"
+        },
         "REGION":{
             "Description": "AWS Region",
             "Type": "String"
@@ -179,6 +191,200 @@
           }
     },
     "Resources": {
+        "SQSQueue":{
+            "Type" : "AWS::SQS::Queue",
+            "Properties" : {
+                "FifoQueue" : false,
+                "MaximumMessageSize" : "10",
+                "QueueName" : "SQSQueueA10",
+                "ReceiveMessageWaitTimeSeconds" : "20"
+                }
+        },
+        "SNSTOPIC":{
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "Subscription" : [ {
+                    "Endpoint" : {
+                        "Fn::GetAtt":[
+                            "LambdaFunction",
+                            "Arn"
+                        ]
+                    },
+                    "Protocol" : "lambda"
+                } ],
+                "TopicName" : "SNSTopicA10"
+            }
+        },
+        "LambdaFunction":{  
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "Code" : {
+                    "S3Bucket" : "codedeploy.mengchen-gao.me"
+                },
+                "Environment" : {
+                    "Variables" : {
+                        "DYNAMODB_NAME" : {"Ref" : "DYNAMODBNAMEA10"}, 
+                        "DYNAMODB_PR_KEY" : {"Ref" : "DYNAMODBPRKEYA10"},
+                        "SENDER" : {"Ref" : "EmailDomain"}
+                    }
+                },
+                "FunctionName" : "LambdaFunctionA10",
+                "Handler" : "EmailNotification::handleRequest",
+                "Layers" : [ 
+                    {
+                        "Arn": {"Ref":"SNSTOPIC"},
+                        "CodeSize": 169
+                    }
+                 ],
+                "Role" : {
+                    "Fn::GetAtt":[
+                        "IAMRoleForLambdaFunction",
+                        "Arn"
+                    ]
+                },
+                "Runtime" : "java8",
+                "Timeout" : "900",
+                "VpcConfig" : {
+                    "SecurityGroupIds" : [
+                        {
+                            "Fn::GetAtt": [
+                                "EC2SecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                     ],
+                    "SubnetIds" : [ 
+                        {"Ref":"Subnet1"},
+                        {"Ref":"Subnet2"},
+                        {"Ref":"Subnet3"}
+                    ]
+                  }
+            }
+        },
+        "IAMRoleForLambdaFunction":{
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "RoleName" : "IAMRoleForLambdaFunctionA10"
+            }
+        },
+        "UploadLogForLambdaFunctionPolicy":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties" : {
+                "PolicyDocument" : {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "logs:CreateLogGroup",
+                            "Resource": {
+                                "Fn::Join":[
+                                    "",
+                                    [
+                                        "arn:aws:logs:us-east-1:",
+                                        {"Ref":"AWSACCOUNTID"},
+                                        ":*"
+                                    ]
+                                ]
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt":[
+                                                    "LambdaFunction",
+                                                    "Arn"
+                                                ]
+                                            },
+                                            ":*"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "PolicyName" : "AWSLambdaBasicExcutingLogRoleA10",
+                    "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+                }
+                
+            }
+        },
+        "DynamoDBPolicyForLambda":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties" :{
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:DescribeStream",
+                            "dynamodb:GetRecords",
+                            "dynamodb:GetShardIterator",
+                            "dynamodb:ListStreams",
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "*"
+                    }
+                ],
+                "PolicyName" : "DynamoDBPolicyForLambdaA10",
+                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+            }
+            
+        },
+        "SESFullAccessPolicy":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties":{
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ses:*"
+                        ],
+                        "Resource": "*"
+                    }
+                ],
+                "PolicyName" : "DSESFullAccessPolicyA10",
+                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+            }
+        },
+        "DynamoDBTable":{
+            "Type" : "AWS::DynamoDB::Table",
+            "Properties" : {
+                "AttributeDefinitions" : [ {
+                    "AttributeName" : "Time",
+                    "AttributeType" : "N" 
+                } ],
+                "KeySchema" : [ {
+                    "AttributeName" : {"Ref":"DYNAMODBPRKEYA10"},
+                    "KeyType" : "HASH"
+                  } 
+                ],
+                "TableName" : {"Ref":"DYNAMODBNAMEA10"}
+              }
+        },
         "devDomainRecordSet":{
             "Type" : "AWS::Route53::RecordSet",
             "Properties" : {
@@ -275,6 +481,15 @@
                                     "DomainName"
                                 ]
                             },"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_SQS_QUEUE_NAME=",
+                            {
+                                "Fn::GetAtt":[
+                                    "SQSQueue",
+                                    "QueueName"
+                                ]
+                            },"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_SNS_TOPIC_ARN=",{"Ref":"SNSTOPIC"},"'"," >> env/properties.sh \n",
+                            "echo export 'DOMAIN=",{"Ref":"EmailDomain"},"'"," >> env/properties.sh \n",
                             "chmod +x env/properties.sh \n",
                             "touch /dev/csye6225.log \n",
                             "chmod 777 /dev/csye6225.log \n",
@@ -294,18 +509,6 @@
                 "LaunchConfigurationName" : {"Ref":"ASGLaunchConfiguration"},
                 "MaxSize" : {"Ref":"AutoScalingMaxSize"},
                 "MinSize" : {"Ref":"AutoScalingMinSize"},
-                "NotificationConfigurations":[
-                    {
-                        "NotificationTypes" : [ 
-                            "autoscaling:EC2_INSTANCE_LAUNCH", 
-                            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
-                            "autoscaling:EC2_INSTANCE_TERMINATE",
-                            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
-                            "autoscaling:TEST_NOTIFICATION"
-                        ],
-                        "TopicARN" : {"Ref":"SNSTopic"}  
-                    }
-                ],
                 "Tags" : [ 
                     {
                         "Key" : "Name",
@@ -317,7 +520,6 @@
                 "VPCZoneIdentifier" : [ {"Ref":"Subnet1"}, {"Ref":"Subnet2"}, {"Ref":"Subnet3"}]
             }
         },
-
         "WebServerScaleUpPolicy": {
             "Type": "AWS::AutoScaling::ScalingPolicy",
             "Properties": {
