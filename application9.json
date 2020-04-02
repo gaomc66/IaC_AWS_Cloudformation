@@ -3,6 +3,18 @@
     "Description": "Launch EC2 - CSYE 6225 Spring 2020 & Set up Networking",
 
     "Parameters": {
+        "EmailDomain":{
+            "Type": "String",
+            "Default": "test@prod.mengchen-gao.me"
+        },
+        "DYNAMODBNAMEA10":{
+            "Type":"String",
+            "Default":"DynamoDBA10"
+        },
+        "DYNAMODBPRKEYA10":{
+            "Type":"String",
+            "Default":"username"
+        },
         "REGION":{
             "Description": "AWS Region",
             "Type": "String"
@@ -20,6 +32,14 @@
             "Type": "String",
             "Default": "5",
             "Description": "The max size of auto scaling group"
+        },
+        "HostedZoneId" :{
+            "Type": "String",
+            "Description": "Hosted Zone Id"
+        } ,
+        "HostedZoneName" : {
+            "Type": "String",
+            "Description": "Hosted Zone Name"
         },
         "EC2TagValue":{
             "Type": "String",
@@ -171,6 +191,200 @@
           }
     },
     "Resources": {
+        "SQSQueue":{
+            "Type" : "AWS::SQS::Queue",
+            "Properties" : {
+                "FifoQueue" : false,
+                "MaximumMessageSize" : "10",
+                "QueueName" : "SQSQueueA10",
+                "ReceiveMessageWaitTimeSeconds" : "20"
+                }
+        },
+        "SNSTOPIC":{
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "Subscription" : [ {
+                    "Endpoint" : {
+                        "Fn::GetAtt":[
+                            "LambdaFunction",
+                            "Arn"
+                        ]
+                    },
+                    "Protocol" : "lambda"
+                } ],
+                "TopicName" : "SNSTopicA10"
+            }
+        },
+        "LambdaFunction":{  
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "Code" : {
+                    "S3Bucket" : "codedeploy.mengchen-gao.me"
+                },
+                "Environment" : {
+                    "Variables" : {
+                        "DYNAMODB_NAME" : {"Ref" : "DYNAMODBNAMEA10"}, 
+                        "DYNAMODB_PR_KEY" : {"Ref" : "DYNAMODBPRKEYA10"},
+                        "SENDER" : {"Ref" : "EmailDomain"}
+                    }
+                },
+                "FunctionName" : "LambdaFunctionA10",
+                "Handler" : "EmailNotification::handleRequest",
+                "Layers" : [ 
+                    {
+                        "Arn": {"Ref":"SNSTOPIC"},
+                        "CodeSize": 169
+                    }
+                 ],
+                "Role" : {
+                    "Fn::GetAtt":[
+                        "IAMRoleForLambdaFunction",
+                        "Arn"
+                    ]
+                },
+                "Runtime" : "java8",
+                "Timeout" : "900",
+                "VpcConfig" : {
+                    "SecurityGroupIds" : [
+                        {
+                            "Fn::GetAtt": [
+                                "EC2SecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                     ],
+                    "SubnetIds" : [ 
+                        {"Ref":"Subnet1"},
+                        {"Ref":"Subnet2"},
+                        {"Ref":"Subnet3"}
+                    ]
+                  }
+            }
+        },
+        "IAMRoleForLambdaFunction":{
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "lambda.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "RoleName" : "IAMRoleForLambdaFunctionA10"
+            }
+        },
+        "UploadLogForLambdaFunctionPolicy":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties" : {
+                "PolicyDocument" : {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "logs:CreateLogGroup",
+                            "Resource": {
+                                "Fn::Join":[
+                                    "",
+                                    [
+                                        "arn:aws:logs:us-east-1:",
+                                        {"Ref":"AWSACCOUNTID"},
+                                        ":*"
+                                    ]
+                                ]
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt":[
+                                                    "LambdaFunction",
+                                                    "Arn"
+                                                ]
+                                            },
+                                            ":*"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "PolicyName" : "AWSLambdaBasicExcutingLogRoleA10",
+                    "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+                }
+                
+            }
+        },
+        "DynamoDBPolicyForLambda":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties" :{
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "dynamodb:DescribeStream",
+                            "dynamodb:GetRecords",
+                            "dynamodb:GetShardIterator",
+                            "dynamodb:ListStreams",
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "*"
+                    }
+                ],
+                "PolicyName" : "DynamoDBPolicyForLambdaA10",
+                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+            }
+            
+        },
+        "SESFullAccessPolicy":{
+            "Type" : "AWS::IAM::Policy",
+            "Properties":{
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ses:*"
+                        ],
+                        "Resource": "*"
+                    }
+                ],
+                "PolicyName" : "DSESFullAccessPolicyA10",
+                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
+            }
+        },
+        "DynamoDBTable":{
+            "Type" : "AWS::DynamoDB::Table",
+            "Properties" : {
+                "AttributeDefinitions" : [ {
+                    "AttributeName" : "Time",
+                    "AttributeType" : "N" 
+                } ],
+                "KeySchema" : [ {
+                    "AttributeName" : {"Ref":"DYNAMODBPRKEYA10"},
+                    "KeyType" : "HASH"
+                  } 
+                ],
+                "TableName" : {"Ref":"DYNAMODBNAMEA10"}
+              }
+        },
         "devDomainRecordSet":{
             "Type" : "AWS::Route53::RecordSet",
             "Properties" : {
@@ -192,8 +406,8 @@
                         ]
                     }
                 },
-                "HostedZoneId" : "Z1MLIVFM5LS9KD",
-                "Name" : "dev.mengchen-gao.me.",
+                "HostedZoneId" : {"Ref":"HostedZoneId"},
+                "Name" : {"Ref":"HostedZoneName"},
                 "Type" : "A"
               }
         },
@@ -267,6 +481,15 @@
                                     "DomainName"
                                 ]
                             },"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_SQS_QUEUE_NAME=",
+                            {
+                                "Fn::GetAtt":[
+                                    "SQSQueue",
+                                    "QueueName"
+                                ]
+                            },"'"," >> env/properties.sh \n",
+                            "echo export 'AWS_SNS_TOPIC_ARN=",{"Ref":"SNSTOPIC"},"'"," >> env/properties.sh \n",
+                            "echo export 'DOMAIN=",{"Ref":"EmailDomain"},"'"," >> env/properties.sh \n",
                             "chmod +x env/properties.sh \n",
                             "touch /dev/csye6225.log \n",
                             "chmod 777 /dev/csye6225.log \n",
@@ -286,18 +509,6 @@
                 "LaunchConfigurationName" : {"Ref":"ASGLaunchConfiguration"},
                 "MaxSize" : {"Ref":"AutoScalingMaxSize"},
                 "MinSize" : {"Ref":"AutoScalingMinSize"},
-                "NotificationConfigurations":[
-                    {
-                        "NotificationTypes" : [ 
-                            "autoscaling:EC2_INSTANCE_LAUNCH", 
-                            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
-                            "autoscaling:EC2_INSTANCE_TERMINATE",
-                            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
-                            "autoscaling:TEST_NOTIFICATION"
-                        ],
-                        "TopicARN" : "arn:aws:sns:us-east-1:724963175368:scale_up_alarm"   
-                    }
-                ],
                 "Tags" : [ 
                     {
                         "Key" : "Name",
@@ -334,13 +545,13 @@
         "CPUAlarmHigh": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-up if CPU > 20% for 10 minutes",
+              "AlarmDescription": "Scale-up if CPU > 90% for 1 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "20",
+              "Threshold": "90",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleUpPolicy"
@@ -360,13 +571,13 @@
         "CPUAlarmLow": {
             "Type": "AWS::CloudWatch::Alarm",
             "Properties": {
-              "AlarmDescription": "Scale-down if CPU < 1% for 10 minutes",
+              "AlarmDescription": "Scale-down if CPU < 70% for 1 minutes",
               "MetricName": "CPUUtilization",
               "Namespace": "AWS/EC2",
               "Statistic": "Average",
               "Period": "300",
               "EvaluationPeriods": "2",
-              "Threshold": "10",
+              "Threshold": "70",
               "AlarmActions": [
                 {
                   "Ref": "WebServerScaleDownPolicy"
@@ -392,7 +603,7 @@
                 "SecurityGroups" : [ 
                     {
                         "Fn::GetAtt": [
-                            "EC2SecurityGroup",
+                            "ELBSecurityGroup",
                             "GroupId"
                         ]
                     }
@@ -438,14 +649,14 @@
                 "VpcId" : {"Ref":"VPC"}
             }
         },
-        "EC2SecurityGroup":{
+        "ELBSecurityGroup":{
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "VpcId": {
                     "Ref":"VPC"
                 },
-                "GroupName": "launch-wizard-8",
-                "GroupDescription": "ec2 SecurityGroup",
+                "GroupName": "ELBsgA9",
+                "GroupDescription": "Elastic Load Balancer SecurityGroup",
                 "SecurityGroupIngress": [
                     {
                         "IpProtocol": "tcp",
@@ -476,6 +687,73 @@
                         "FromPort": "3000",
                         "ToPort": "3000",
                         "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        },
+        "EC2SecurityGroup":{
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Ref":"VPC"
+                },
+                "GroupName": "EC2sgA9",
+                "GroupDescription": "ec2 SecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "3000",
+                        "ToPort": "3000",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt": [
+                                "ELBSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
                     }
                 ]
             }
