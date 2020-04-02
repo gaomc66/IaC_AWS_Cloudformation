@@ -194,8 +194,6 @@
         "SQSQueue":{
             "Type" : "AWS::SQS::Queue",
             "Properties" : {
-                "FifoQueue" : false,
-                "MaximumMessageSize" : "10",
                 "QueueName" : "SQSQueueA10",
                 "ReceiveMessageWaitTimeSeconds" : "20"
                 }
@@ -230,12 +228,6 @@
                 },
                 "FunctionName" : "LambdaFunctionA10",
                 "Handler" : "EmailNotification::handleRequest",
-                "Layers" : [ 
-                    {
-                        "Arn": {"Ref":"SNSTOPIC"},
-                        "CodeSize": 169
-                    }
-                 ],
                 "Role" : {
                     "Fn::GetAtt":[
                         "IAMRoleForLambdaFunction",
@@ -305,22 +297,7 @@
                                 "logs:CreateLogStream",
                                 "logs:PutLogEvents"
                             ],
-                            "Resource": [
-                                {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            {
-                                                "Fn::GetAtt":[
-                                                    "LambdaFunction",
-                                                    "Arn"
-                                                ]
-                                            },
-                                            ":*"
-                                        ]
-                                    ]
-                                }
-                            ]
+                            "Resource":  "*"
                         }
                     ],
                     "PolicyName" : "AWSLambdaBasicExcutingLogRoleA10",
@@ -332,22 +309,24 @@
         "DynamoDBPolicyForLambda":{
             "Type" : "AWS::IAM::Policy",
             "Properties" :{
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": [
-                            "dynamodb:DescribeStream",
-                            "dynamodb:GetRecords",
-                            "dynamodb:GetShardIterator",
-                            "dynamodb:ListStreams",
-                            "logs:CreateLogGroup",
-                            "logs:CreateLogStream",
-                            "logs:PutLogEvents"
-                        ],
-                        "Resource": "*"
-                    }
-                ],
+                "PolicyDocument":{
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "dynamodb:DescribeStream",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:ListStreams",
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
                 "PolicyName" : "DynamoDBPolicyForLambdaA10",
                 "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
             }
@@ -356,16 +335,18 @@
         "SESFullAccessPolicy":{
             "Type" : "AWS::IAM::Policy",
             "Properties":{
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": [
-                            "ses:*"
-                        ],
-                        "Resource": "*"
-                    }
-                ],
+                "PolicyDocument":{
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ses:*"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
                 "PolicyName" : "DSESFullAccessPolicyA10",
                 "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
             }
@@ -373,15 +354,21 @@
         "DynamoDBTable":{
             "Type" : "AWS::DynamoDB::Table",
             "Properties" : {
-                "AttributeDefinitions" : [ {
-                    "AttributeName" : "Time",
-                    "AttributeType" : "N" 
-                } ],
+                "AttributeDefinitions" : [ 
+                    {
+                        "AttributeName" : {"Ref":"DYNAMODBPRKEYA10"},
+                        "AttributeType" : "S" 
+                    } 
+                ],
                 "KeySchema" : [ {
                     "AttributeName" : {"Ref":"DYNAMODBPRKEYA10"},
                     "KeyType" : "HASH"
                   } 
                 ],
+                "ProvisionedThroughput" : {
+                    "ReadCapacityUnits" : "5",
+                    "WriteCapacityUnits" : "5"
+                  },
                 "TableName" : {"Ref":"DYNAMODBNAMEA10"}
               }
         },
