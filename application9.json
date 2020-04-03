@@ -268,7 +268,10 @@
                         }
                     ]
                 },
-                "RoleName" : "IAMRoleForLambdaFunctionA10"
+                "RoleName" : "IAMRoleForLambdaFunctionA10",
+                "ManagedPolicyArns":[
+                    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+                ]
             }
         },
         "UploadLogForLambdaFunctionPolicy":{
@@ -319,6 +322,7 @@
                                 "dynamodb:GetRecords",
                                 "dynamodb:GetShardIterator",
                                 "dynamodb:ListStreams",
+                                "dynamodb:*",
                                 "logs:CreateLogGroup",
                                 "logs:CreateLogStream",
                                 "logs:PutLogEvents",
