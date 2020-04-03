@@ -1115,7 +1115,11 @@
                     ]
                },
                "ManagedPolicyArns":[
-                "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+                "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+                "arn:aws:iam::aws:policy/AmazonSNSFullAccess",
+                "arn:aws:iam::aws:policy/AmazonSESFullAccess",
+                "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
+
                 ],
                 "Path":"/"
             }            
