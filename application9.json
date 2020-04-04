@@ -226,6 +226,7 @@
                         "SENDER" : {"Ref" : "EmailDomain"}
                     }
                 },
+                "MemorySize" : "512",
                 "FunctionName" : "LambdaFunctionA10",
                 "Handler" : "EmailNotification::handleRequest",
                 "Role" : {
@@ -267,7 +268,11 @@
                     "Statement": [
                         {
                             "Effect": "Allow",
-                            "Action": "logs:CreateLogGroup",
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                              ],
                             "Resource": {
                                 "Fn::Join":[
                                     "",
@@ -278,6 +283,18 @@
                                     ]
                                 ]
                             }
+                        },{
+                            "Effect": "Allow",
+                            "Action": [
+                                "dynamodb:DescribeStream",
+                                "dynamodb:GetRecords",
+                                "dynamodb:GetShardIterator",
+                                "dynamodb:ListStreams",
+                                "dynamodb:GetItem",
+                                "dynamodb:PutItem",
+                                "dynamodb:UpdateItem"
+                            ],
+                            "Resource": "*"
                         },
                         {
                             "Effect": "Allow",
@@ -286,6 +303,28 @@
                                 "logs:PutLogEvents"
                             ],
                             "Resource":  "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ses:VerifyEmailAddress",
+                                "ses:SendEmail",
+                                "ses:SendRawEmail"
+                            ],
+                            "Resource":  "*"
+                        },{
+                            "Effect": "Allow",
+                            "Action": [
+                                "sns:ConfirmSubscription"  
+                            ],
+                            "Resource":  {"Ref":"SNSTOPIC"}
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject"  
+                            ],
+                            "Resource": "*"
                         }
                     ]
                    
@@ -294,61 +333,7 @@
                 "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
             }
         },
-        "DynamoDBPolicyForLambda":{
-            "Type" : "AWS::IAM::Policy",
-            "Properties" :{
-                "PolicyDocument":{
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "dynamodb:DescribeStream",
-                                "dynamodb:GetRecords",
-                                "dynamodb:GetShardIterator",
-                                "dynamodb:ListStreams",
-                                "dynamodb:*",
-                                "logs:CreateLogGroup",
-                                "logs:CreateLogStream",
-                                "logs:PutLogEvents",
-                                "ec2:DescribeSecurityGroups",
-                                "ec2:DescribeSubnets",
-                                "ec2:DescribeVpcs",
-                                "ec2:DescribeNetworkInterfaces", 
-                                "ec2:CreateNetworkInterface",
-                                "ec2:DeleteNetworkInterface",
-                                "sqs:ListQueues",
-                                "sqs:SendMessage",
-                                "ses:*"
-                            ],
-                            "Resource": "*"
-                        }
-                    ]
-                },
-                "PolicyName" : "DynamoDBPolicyForLambdaA10",
-                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
-            }
-            
-        },
-        "SESFullAccessPolicy":{
-            "Type" : "AWS::IAM::Policy",
-            "Properties":{
-                "PolicyDocument":{
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                "ses:*"
-                            ],
-                            "Resource": "*"
-                        }
-                    ]
-                },
-                "PolicyName" : "DSESFullAccessPolicyA10",
-                "Roles" : [ {"Ref":"IAMRoleForLambdaFunction"}]
-            }
-        },
+        
         "DynamoDBTable":{
             "Type" : "AWS::DynamoDB::Table",
             "Properties" : {
@@ -794,6 +779,20 @@
                                 }
                             ]
                                 
+                        },{
+                            "Effect": "Allow",
+                            "Action": [
+                                "sns:Publish"
+                            ],
+                            "Resource": [
+                                "*"
+                            ]
+                        },{
+                            "Action": [
+                                "sqs:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": "*"
                         }
                     ]
                 },
@@ -1108,11 +1107,7 @@
                     ]
                },
                "ManagedPolicyArns":[
-                "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
-                "arn:aws:iam::aws:policy/AmazonSNSFullAccess",
-                "arn:aws:iam::aws:policy/AmazonSESFullAccess",
-                "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
-
+                "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
                 ],
                 "Path":"/"
             }            
